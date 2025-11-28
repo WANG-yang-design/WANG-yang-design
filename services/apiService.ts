@@ -1,19 +1,40 @@
 
-import { API_BASE_URL, ApiResponse, FileItem } from '../types';
+import { API_BASE_URL as DEFAULT_API_URL, ApiResponse, FileItem } from '../types';
+
+const STORAGE_KEY = 'omnicloud_api_url';
 
 export const ApiService = {
+  /**
+   * Get the current base URL from storage or default
+   */
+  getBaseUrl: (): string => {
+    return localStorage.getItem(STORAGE_KEY) || DEFAULT_API_URL;
+  },
+
+  /**
+   * Set a new base URL
+   */
+  setBaseUrl: (url: string) => {
+    // Ensure no trailing slash
+    const cleanUrl = url.replace(/\/$/, '');
+    localStorage.setItem(STORAGE_KEY, cleanUrl);
+  },
+
   /**
    * Fetch all files
    */
   getList: async (): Promise<FileItem[]> => {
+    const baseUrl = ApiService.getBaseUrl();
     try {
-      const response = await fetch(`${API_BASE_URL}/list`, {
+      console.log(`Fetching list from: ${baseUrl}/list`);
+      const response = await fetch(`${baseUrl}/list`, {
         method: 'GET',
-        mode: 'cors', // Important for cross-origin if backend supports it
+        // 'cors' mode is default, but explicit helps debugging
+        mode: 'cors', 
       });
       
       if (!response.ok) {
-        throw new Error(`Server error: ${response.status}`);
+        throw new Error(`Server error: ${response.status} ${response.statusText}`);
       }
 
       const json: ApiResponse<FileItem[]> = await response.json();
@@ -35,6 +56,7 @@ export const ApiService = {
    * Upload a file
    */
   uploadFile: async (file: File, text?: string): Promise<any> => {
+    const baseUrl = ApiService.getBaseUrl();
     const formData = new FormData();
     formData.append('file', file);
     if (text) {
@@ -42,7 +64,7 @@ export const ApiService = {
     }
 
     try {
-      const response = await fetch(`${API_BASE_URL}/upload`, {
+      const response = await fetch(`${baseUrl}/upload`, {
         method: 'POST',
         body: formData,
         mode: 'cors',
@@ -64,6 +86,7 @@ export const ApiService = {
    * Get direct download/preview URL
    */
   getDownloadUrl: (id: string): string => {
-    return `${API_BASE_URL}/download/${id}`;
+    const baseUrl = ApiService.getBaseUrl();
+    return `${baseUrl}/download/${id}`;
   }
 };

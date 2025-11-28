@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { ApiService } from './services/apiService';
 import { FileItem, FileCategory } from './types';
@@ -19,7 +18,10 @@ import {
   FileText,
   Image as ImageIcon,
   Video,
-  Music
+  Music,
+  Settings,
+  Save,
+  X
 } from 'lucide-react';
 
 function App() {
@@ -44,6 +46,10 @@ function App() {
   const [externalLink, setExternalLink] = useState('');
   const [playingExternalUrl, setPlayingExternalUrl] = useState<string | null>(null);
 
+  // Settings State
+  const [showSettings, setShowSettings] = useState(false);
+  const [serverUrl, setServerUrl] = useState(ApiService.getBaseUrl());
+
   const fetchItems = useCallback(async () => {
     try {
       setLoading(true);
@@ -53,7 +59,7 @@ function App() {
       setItems(Array.isArray(data) ? [...data].reverse() : []); 
     } catch (error) {
       console.error(error);
-      setError("Unable to load files. Server might be offline.");
+      setError("Unable to connect to server.");
     } finally {
       setLoading(false);
     }
@@ -62,6 +68,12 @@ function App() {
   useEffect(() => {
     fetchItems();
   }, [fetchItems]);
+
+  const handleSaveSettings = () => {
+    ApiService.setBaseUrl(serverUrl);
+    setShowSettings(false);
+    fetchItems();
+  };
 
   const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!e.target.files || e.target.files.length === 0) return;
@@ -139,7 +151,7 @@ function App() {
     </div>
   );
 
-  const FileCard = ({ item }: { item: FileItem }) => {
+  const FileCard: React.FC<{ item: FileItem }> = ({ item }) => {
     const category = getCategoryFromMime(item.filetype);
     const CategoryIcon = getIconForCategory(category);
     
@@ -207,28 +219,17 @@ function App() {
   return (
     <div className="min-h-screen bg-background pb-20">
       {/* Enhanced Navbar with Refresh */}
-      <nav className="fixed top-0 left-0 right-0 h-16 bg-background/80 backdrop-blur-md border-b border-white/5 z-50 flex items-center justify-between px-4 md:px-8">
-        <div className="flex items-center gap-3">
-            <NavBar isOnline={!error && !loading} /> 
-            {/* Note: NavBar component is actually self-contained in previous code, 
-                but we are overriding the layout slightly here. 
-                Actually, let's just use the existing NavBar and inject the refresh button via portal or just place it below.
-                For simplicity in this single file update, I'll render the refresh button in the main layout header below.
-            */}
-        </div>
-      </nav>
-      {/* Re-rendering NavBar correctly */}
-      <div className="fixed top-0 w-full z-50">
-        <div className="absolute right-4 top-4 z-[60]">
-             <button 
-                onClick={fetchItems}
-                className={`p-2 rounded-full bg-surface border border-white/10 text-zinc-400 hover:text-white transition-all hover:rotate-180 ${loading ? 'animate-spin text-primary' : ''}`}
-                title="Refresh Content"
-              >
-                <RefreshCw className="w-5 h-5" />
-              </button>
-        </div>
-        <NavBar isOnline={!error} />
+      <NavBar isOnline={!error} onOpenSettings={() => setShowSettings(true)} />
+
+      {/* Manual Refresh Button (Portal-like placement) */}
+      <div className="fixed top-3 right-16 z-[60] md:right-20">
+        <button 
+            onClick={fetchItems}
+            className={`p-2 rounded-full text-zinc-400 hover:text-white transition-all hover:rotate-180 ${loading ? 'animate-spin text-primary' : ''}`}
+            title="Refresh Content"
+        >
+            <RefreshCw className="w-5 h-5" />
+        </button>
       </div>
 
       <main className="pt-24 px-4 md:px-8 max-w-7xl mx-auto space-y-8">
@@ -348,12 +349,21 @@ function App() {
             <AlertCircle className="w-12 h-12 text-red-500 mb-4" />
             <h3 className="text-lg font-medium text-white mb-2">Connection Failed</h3>
             <p className="text-zinc-400 text-sm max-w-md mb-6">{error}</p>
-            <button 
-              onClick={fetchItems}
-              className="px-6 py-2 bg-zinc-800 hover:bg-zinc-700 text-white rounded-lg font-medium transition-colors"
-            >
-              Retry Connection
-            </button>
+            <p className="text-xs text-zinc-500 mb-6">Current URL: {ApiService.getBaseUrl()}</p>
+            <div className="flex gap-4">
+              <button 
+                onClick={fetchItems}
+                className="px-6 py-2 bg-zinc-800 hover:bg-zinc-700 text-white rounded-lg font-medium transition-colors"
+              >
+                Retry
+              </button>
+              <button 
+                onClick={() => setShowSettings(true)}
+                className="px-6 py-2 bg-primary hover:bg-primaryHover text-white rounded-lg font-medium transition-colors"
+              >
+                Configure Server
+              </button>
+            </div>
           </div>
         ) : activeCategory === FileCategory.ALL ? (
           // DASHBOARD VIEW (Limited Items)
@@ -411,6 +421,52 @@ function App() {
           </div>
         )}
       </main>
+
+      {/* Settings Modal */}
+      {showSettings && (
+        <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
+           <div className="bg-surface w-full max-w-md p-6 rounded-2xl border border-white/10 shadow-2xl scale-100 animate-in zoom-in-95 duration-200">
+              <div className="flex justify-between items-center mb-6">
+                <h3 className="text-xl font-semibold text-white">Server Settings</h3>
+                <button onClick={() => setShowSettings(false)} className="text-zinc-500 hover:text-white">
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+              
+              <div className="space-y-4">
+                 <div>
+                   <label className="block text-sm font-medium text-zinc-400 mb-2">Backend API URL</label>
+                   <input 
+                      type="text" 
+                      value={serverUrl} 
+                      onChange={(e) => setServerUrl(e.target.value)}
+                      placeholder="https://your-tunnel-url.com"
+                      className="w-full bg-black/40 border border-white/10 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-primary/50"
+                   />
+                   <p className="text-xs text-zinc-500 mt-2">
+                     If you are using cpolar/ngrok, paste the new forwarding URL here when it changes.
+                   </p>
+                 </div>
+                 
+                 <div className="pt-4 flex justify-end gap-3">
+                    <button 
+                      onClick={() => setShowSettings(false)}
+                      className="px-4 py-2 text-zinc-400 hover:text-white font-medium"
+                    >
+                      Cancel
+                    </button>
+                    <button 
+                      onClick={handleSaveSettings}
+                      className="px-6 py-2 bg-primary hover:bg-primaryHover text-white rounded-lg font-medium flex items-center gap-2"
+                    >
+                      <Save className="w-4 h-4" />
+                      Save Configuration
+                    </button>
+                 </div>
+              </div>
+           </div>
+        </div>
+      )}
 
       {/* Media Preview Modal */}
       {(selectedItem || playingExternalUrl) && (

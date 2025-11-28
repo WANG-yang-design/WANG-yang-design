@@ -1,0 +1,5 @@
+{
+  "name": "OmniCloud",
+  "description": "A high-performance multi-modal file manager and media player connected to your custom backend.",
+  "requestFramePermissions": []
+}

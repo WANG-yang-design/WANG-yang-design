@@ -9,7 +9,8 @@ import {
 } from 'lucide-react';
 
 export const getCategoryFromMime = (mime?: string): FileCategory => {
-  if (!mime) return FileCategory.DOCUMENT; // Default if undefined
+  // Defensive check: Ensure mime is a valid string
+  if (!mime || typeof mime !== 'string') return FileCategory.DOCUMENT;
   
   const lowerMime = mime.toLowerCase();
   

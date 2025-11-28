@@ -1,3 +1,4 @@
+
 import { API_BASE_URL, ApiResponse, FileItem } from '../types';
 
 export const ApiService = {
@@ -16,10 +17,13 @@ export const ApiService = {
       }
 
       const json: ApiResponse<FileItem[]> = await response.json();
-      if (json.code === 200) {
+      
+      // Defensive check: Ensure data is an array
+      if (json.code === 200 && Array.isArray(json.data)) {
         return json.data;
       } else {
-        throw new Error(json.message || "Failed to fetch list");
+        console.warn("API returned invalid data format", json);
+        return []; // Return empty array instead of crashing
       }
     } catch (error) {
       console.error("API Error (getList):", error);

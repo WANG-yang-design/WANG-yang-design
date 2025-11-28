@@ -24,7 +24,7 @@ import {
   X
 } from 'lucide-react';
 
-// --- Sub-components moved outside ---
+// --- Sub-components (Outside App to prevent re-renders) ---
 
 interface SectionHeaderProps {
   title: string;
@@ -151,27 +151,19 @@ function App() {
       setLoading(true);
       setError(null);
       
-      // 1. 获取后端响应
       const response: any = await ApiService.getList();
       
-      console.log("后端返回的数据:", response); // 方便在控制台调试
-
-      // 2. 【关键修改】提取内部的 data 字段
-      // 如果 response 本身是数组(兼容旧代码)，用 response
-      // 如果 response.data 是数组(你的现状)，用 response.data
       let actualData = [];
-      
       if (Array.isArray(response)) {
           actualData = response;
       } else if (response && Array.isArray(response.data)) {
           actualData = response.data;
       }
 
-      // 3. 设置数据
       setItems(actualData.reverse()); 
       
     } catch (error) {
-      console.error(error);
+      console.error("Fetch Error:", error);
       setError("Unable to connect to server.");
     } finally {
       setLoading(false);

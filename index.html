@@ -56,13 +56,14 @@
         color: #71717a;
       }
     </style>
+    <!-- REMOVED IMPORTMAP TO FIX VERCEL DEPLOYMENT CRASH -->
 <script type="importmap">
 {
   "imports": {
-    "lucide-react": "https://aistudiocdn.com/lucide-react@^0.555.0",
-    "react/": "https://aistudiocdn.com/react@^19.2.0/",
     "react": "https://aistudiocdn.com/react@^19.2.0",
-    "react-dom/": "https://aistudiocdn.com/react-dom@^19.2.0/"
+    "react-dom/": "https://aistudiocdn.com/react-dom@^19.2.0/",
+    "react/": "https://aistudiocdn.com/react@^19.2.0/",
+    "lucide-react": "https://aistudiocdn.com/lucide-react@^0.555.0"
   }
 }
 </script>
@@ -81,6 +82,7 @@
       // Global error handler for startup crashes
       window.addEventListener('error', function(event) {
         const root = document.getElementById('root');
+        // Only show error if the app is still in the loading state (React hasn't taken over)
         if (root && root.innerHTML.includes('Loading OmniCloud')) {
           root.innerHTML = '<div style="height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#ef4444;background:#09090b;text-align:center;padding:20px;">' +
             '<h2 style="font-size:1.5rem;font-weight:bold;margin-bottom:10px;">Startup Error</h2>' +

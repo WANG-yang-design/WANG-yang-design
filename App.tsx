@@ -161,11 +161,20 @@ function App() {
   const [serverUrl, setServerUrl] = useState(ApiService.getBaseUrl());
 
   const fetchItems = useCallback(async () => {
+    // Timeout Promise to prevent infinite loading
+    const timeoutPromise = new Promise((_, reject) => 
+      setTimeout(() => reject(new Error("Connection timeout")), 8000)
+    );
+
     try {
       setLoading(true);
       setError(null);
       
-      const response: any = await ApiService.getList();
+      // Race between the fetch and the timeout
+      const response: any = await Promise.race([
+        ApiService.getList(),
+        timeoutPromise
+      ]);
       
       let actualData = [];
       if (Array.isArray(response)) {
@@ -176,9 +185,14 @@ function App() {
 
       setItems(actualData.reverse()); 
       
-    } catch (error) {
+    } catch (error: any) {
       console.error("Fetch Error:", error);
-      setError("Unable to connect to server.");
+      // More user friendly error message
+      let msg = "Unable to connect to server.";
+      if (error.message === "Connection timeout") {
+        msg = "Server is taking too long to respond. Check your tunnel connection.";
+      }
+      setError(msg);
     } finally {
       setLoading(false);
     }
